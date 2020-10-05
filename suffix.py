@@ -30,16 +30,12 @@ def suffix_generate(model, data_obj, candidate_num=1):
     # candidate_num = 5
     rnnG.eval()
 
-    # if 'suffix_seq_pred' in locals():
-    #     del suffix_seq_pred
+
 
     suffix_pred_list = []
     suffix_truth_list = []
 
-    # suffix_pred_dic={}
-    # suffix_pred_remain_time_dic={}
-    # suffix_truth_remain_time_dic={}
-    # #suffix_pred_dic_temp={}
+
 
     # Nested dictionary
     suffix_pred_dic = collections.defaultdict(dict)  # Its like {0: {(8, 6, 0): [[0], [8, 0], [8, 8, 0]]},....}
@@ -69,8 +65,7 @@ def suffix_generate(model, data_obj, candidate_num=1):
                 condition = 1
                 input_x = element.view((1, element.size()[0], element.size()[1]))
 
-                # suffix_seq_pred = torch.tensor([]).long().cuda()
-                # suffix_seq_pred = []
+
 
                 temp = torch.argmax(y_truth[i, :, events], dim=1).tolist()
 
@@ -105,8 +100,6 @@ def suffix_generate(model, data_obj, candidate_num=1):
 
 
 
-                    # if(random.choices([0,1], weights=[1- tm, tm], k=1)[0]):
-                    #   y_pred[:,-1:,0] = torch.max(y_pred[:,-1:,:])
 
                     candidate_suffix = beam2(candidate_suffix,
                                              y_pred[:, -1, :].view((y_pred.size()[0], -1, y_pred.size()[2])), events,
@@ -142,8 +135,6 @@ def suffix_generate(model, data_obj, candidate_num=1):
 
                     ########################################
                     y_pred_next = y_pred[:, -1, :].view((y_pred.size()[0], -1, y_pred.size()[2])).clone()
-                    # y_pred_next= y_pred[:,-3:,:].view((y_pred.size()[0],-1, y_pred.size()[2])).clone()
-                    # y_pred_next[:,:,events] = nn.functional.gumbel_softmax(y_pred_next[:,:,events], tau=t, dim=2)
                     y_pred_next[:, :, events] = F.one_hot(
                         torch.argmax(F.softmax(y_pred_next[:, :, events], dim=2), dim=2),
                         num_classes=len(events)).float()
@@ -158,45 +149,6 @@ def suffix_generate(model, data_obj, candidate_num=1):
     #--------------------------
     out = os.path.join(data_obj.output_dir, 'suffix-generated '+str(candidate_num) + data_obj.dataset_name + data_obj.training_mode+ '.pkl')
     pickle.dump((suffix_pred_dic, suffix_pred_remain_time_dic, suffix_truth_remain_time_dic, suffix_prefix_dic), open(out, "wb"))
-    #
-    # suffix_pred_dic_temp = copy.deepcopy(suffix_pred_dic)
-    # suffix_pred_remain_time_dic_temp = copy.deepcopy(suffix_pred_remain_time_dic)
-    #
-    # for k1 in suffix_pred_dic:
-    #     for k2 in suffix_pred_dic[k1]:
-    #         for i in range(len(suffix_pred_dic[k1][k2])):
-    #             u = suffix_pred_dic[k1][k2][i]
-    #             v = suffix_pred_remain_time_dic[k1][k2][i]
-    #             # print(suffix_pred_dic[k1][k2][i])
-    #             # print(suffix_pred_remain_time_dic[k1][k2][i])
-    #             temp = []
-    #             temp_time = []
-    #             last_event = dict()
-    #             for j in range(len(u)):
-    #                 if (u[j] in last_event):
-    #                     last_event[u[j]] += 1
-    #
-    #                 else:
-    #                     last_event = dict()
-    #                     last_event[u[j]] = 1
-    #
-    #                 # print(last_event)
-    #                 try:
-    #                     if (last_event[u[j]] <= np.ceil(data_obj.activity_freq[u[j]][0] + 2 * data_obj.activity_freq[u[j]][1])):
-    #                         temp.append(u[j])
-    #                         temp_time.append(v[j])
-    #                 except KeyError:  # For label 0
-    #                     temp.append(u[j])
-    #                 except IndexError:
-    #                     temp_time.append(0)
-    #                     # print(temp)
-    #             suffix_pred_dic_temp[k1][k2][i] = temp
-    #             suffix_pred_remain_time_dic_temp[k1][k2][i] = temp_time
-    # suffix_pred_dic = suffix_pred_dic_temp
-    # suffix_pred_remain_time_dic = suffix_pred_remain_time_dic_temp
-    #
-    # out = os.path.join(data_obj.output_dir, 'suffix-generatedAf ' + data_obj.dataset_name + data_obj.training_mode + '.pkl')
-    # pickle.dump((suffix_pred_dic, suffix_pred_remain_time_dic, suffix_truth_remain_time_dic, suffix_prefix_dic),open(out, "wb"))
     print('Suffix Generation is done!')
 
 
@@ -271,10 +223,7 @@ def suffix_similarity(data_obj, beam_size):
     # Writing to excell file
     workbook = xlsxwriter.Workbook(os.path.join(data_obj.output_dir, data_obj.dataset_name+ data_obj.training_mode+'similarity'+str(beam_size)+'.xlsx'))
 
-    #
-    # workbook = xlsxwriter.Workbook(
-    #     "/content/drive/My Drive/Deep Learing project/Results/bpi_12_w" + '/ ' + 'similarity ' + 'beam=' + str(
-    #         beam_size) + '.xlsx')
+
 
     worksheet = workbook.add_worksheet()
     worksheet.write(0, 0, "Case_ID")
@@ -316,7 +265,7 @@ def suffix_similarity(data_obj, beam_size):
     worksheet.write(row + 7, col, "The average of MAE, normalized, of cycle time: " + str(np.mean(timeError)))
     worksheet.write(row + 8, col, "The average of MAE of cycle time: " + str(np.mean(timeError) * duration_time_max))
 
-    # worksheet.write(row+7, col, "The prefix length of the traning is: "+str(prefix_len))
+
 
     workbook.close()
 
