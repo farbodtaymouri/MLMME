@@ -43,7 +43,7 @@ def main(input_path, training_mode = 'mle-gan'):
     #--------------------------------------------
     if(training_mode=='mle'):
         print("Training via MLE")
-        #nw.train_mle(model, optimizerG, data_obj)
+        nw.train_mle(model, optimizerG, data_obj)
         #Loading the best model saved during training
         path = os.path.join(data_obj.output_dir, 'rnnG(validation entropy).m')
         model.load_state_dict(torch.load(path))
@@ -52,7 +52,7 @@ def main(input_path, training_mode = 'mle-gan'):
     elif(training_mode =='mle-gan'):
         print("Training via MLE-GAN")
         #Training via MLE-GAN
-        #nw.train_gan(model, rnnD, optimizerG, optimizerD,data_obj)
+        nw.train_gan(model, rnnD, optimizerG, optimizerD,data_obj)
         # Loading the best model saved during training
         path = os.path.join(data_obj.output_dir, 'rnnG(validation entropy gan).m')
         model.load_state_dict(torch.load(path))
@@ -81,12 +81,9 @@ if __name__ == "__main__":
     log_name = sys.argv[1]
     training_mode = sys.argv[2]
     input_path = os.path.join(os.getcwd(), 'data', log_name)
-    #input_path = os.path.join(os.getcwd(),'data','helpdesk(day).pkl')
-    #input_path = os.path.join(os.getcwd(), 'data', 'BPI2012.pkl')
-    #input_path = os.path.join(os.getcwd(), 'data', 'BPI2017.pkl')
+
 
     print("Input data:", input_path)
     print("Training mode:", training_mode)
-    #training_mode = 'mle-gan'
 
     main(input_path, training_mode)
