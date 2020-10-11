@@ -94,11 +94,9 @@ class Seq2Seq(nn.Module, pr.Preprocessing):
             if teacher_force:
                 inp = trg[:, i, :].view((trg.size()[0], 1, trg.size()[2]))
             else:
-                # inp = torch.nn.functional.gumbel_softmax(output, tau = 0.001)
                 inp = output
 
             begin_symbol = torch.cat((begin_symbol, output), dim=1)
-        # print("----------------------------", begin_symbol.size())
         prediction = begin_symbol[:, 1:, :]
 
         return prediction
@@ -149,7 +147,6 @@ def train_mle(model,optimizerG, data_obj):
     model.train()
     epoch = 500
     events = list(np.arange(0, len(unique_event) + 1))
-    # evetns = list(np.arange(1,len(unique_event)+1))
     gen_loss_pred = []
     disc_loss_tot = []
     gen_loss_tot = []
@@ -161,11 +158,8 @@ def train_mle(model,optimizerG, data_obj):
     dl_on_validation = []
 
     for i in tqdm(range(epoch)):
-        # train_suffix_loader = DataLoader(dataset=train_suffix_data, batch_size=batch, shuffle=True)
         for tl in train_suffix_loader_partition_list:
             train_suffix_loader = tl
-            # MAX_ITER = tl.dataset[0][1].size()[0]
-            # MAX_ITER = tl.dataset.tensors[1].size()[1]
             for mini_batch in iter(train_suffix_loader):
                 optimizerG.zero_grad()
 
@@ -197,7 +191,7 @@ def train_mle(model,optimizerG, data_obj):
             print("Iteration:", i, "The avg of Gen loss is:", gen_loss_tot[-1])
 
         # Applying validation after several epoches
-        # Early stopping (checking for 5 times)
+        # Early stopping (checking for 30 times)
         if (i % 5 == 0):
 
             model.eval()
@@ -212,13 +206,13 @@ def train_mle(model,optimizerG, data_obj):
                 torch.save(model.state_dict(), os.path.join(data_obj.output_dir,'rnnG(validation entropy).m'))
 
 
-            # Checking whether the accuracy on validation is dropped or no (we consider the last 5 epoch)
+            # Checking whether the accuracy on validation is dropped or no (we consider the last 30 epoch)
             if (dl_loss_validation >= np.max(dl_on_validation)):
                 print("Best model on validation (DL) is saved")
 
                 torch.save(model.state_dict(), os.path.join(data_obj.output_dir,'rnnG(validation dl).m'))
 
-            # Checking whether the accuracy on validation is dropped or no (we consider the last 5 epoch)
+            # Checking whether the accuracy on validation is dropped or no (we consider the last 30 epoch)
             if (len(loss_on_validation) > 30):
                 if np.all(np.array(loss_on_validation[-29:]) > loss_on_validation[-30]):
                     print("Early stopping has halt the traning!!")
@@ -254,14 +248,10 @@ def train_gan(model,rnnD, optimizerG,optimizerD, data_obj):
 
     model.train()
     for i in tqdm(range(epoch)):
-        # train_suffix_loader = DataLoader(dataset=train_suffix_data, batch_size=batch, shuffle=True)
         for tl in train_suffix_loader_partition_list:
             train_suffix_loader = tl
-            # MAX_ITER = tl.dataset[0][1].size()[0]
-            # MAX_ITER = tl.dataset.tensors[1].size()[1]
             for mini_batch in iter(train_suffix_loader):
-                # optimizerD.zero_grad()
-                # optimizerG.zero_grad()
+
 
                 x = mini_batch[0];
                 y_truth = mini_batch[1];
@@ -273,8 +263,7 @@ def train_gan(model,rnnD, optimizerG,optimizerD, data_obj):
                 y_truth_clone = y_truth.clone()
                 ###############################################################
                 ###############################################################
-                #with torch.autograd.set_detect_anomaly(True):
-                #####GAN with GUMBLE SOFT
+                #####GAN with GUMBEL SOFT
                 optimizerD.zero_grad()
                 x[:,:,events] = one_hot_to_gumble_soft(x[:,:,events])
                 y_truth[:,:,events] = one_hot_to_gumble_soft(y_truth[:,:,events])
@@ -308,14 +297,11 @@ def train_gan(model,rnnD, optimizerG,optimizerD, data_obj):
 
                 # Generator
                 pf = rnnD(suffix_fake)
-                # gl = -(1.0/pf.size()[0])*torch.sum(F.logsigmoid(pf) - F.logsigmoid(1 - pf))
                 gl = -torch.mean(F.logsigmoid(pf) - F.logsigmoid(1 - pf))
-                # gl = -torch.mean(pf)
                 gl.backward(retain_graph=True)
                 gen_loss_temp.append(gl.tolist())
 
                 torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1)
-                # optimizerG.step()
 
 
 
@@ -345,7 +331,7 @@ def train_gan(model,rnnD, optimizerG,optimizerD, data_obj):
 
 
         #Applying validation after several epoches
-        # Early stopping (checking for 5 times)
+        # Early stopping (checking for 30 times)
         if (i % 5 == 0):
             model.eval()
             gen_loss_pred_validation, dl_loss_validation, mae_loss_validation = model_eval_test(model, data_obj, 'validation')
@@ -382,7 +368,6 @@ def one_hot_to_gumble_soft(m):
   '''
   m: a 3 dimensional tensor,e.g., torch.Size([5, 4, 11])
   '''
-  #print(torch.argmax(m, dim=2), torch.argmax(m, dim=2).view((m.size()[0], m.size()[1],-1)) )
   m[m==1] =.9
   m[m==0] = 0.1/(m.size()[2]-1)
   m= nn.functional.gumbel_softmax(m,dim=2, tau=0.001)
@@ -394,9 +379,8 @@ def one_hot_to_gumble_soft(m):
 def model_eval_test(modelG, data_obj, mode):
     # set the evaluation mode (this mode is necessary if you train with batch, since in test the size of batch is different)
     rnnG = modelG
-    # rnnD  = modelD
     rnnG.eval()
-    # rnnD.eval()
+
 
     valid_suffix_loader_partition_list = data_obj.valid_suffix_loader_partition_list
     test_suffix_loader_partition_list = data_obj.test_suffix_loader_partition_list
@@ -406,11 +390,9 @@ def model_eval_test(modelG, data_obj, mode):
     duration_time_loc = data_obj.duration_time_loc
 
     if (mode == 'validation'):
-        # data_loader = validation_suffix_loader
         data_loader_partition_list = valid_suffix_loader_partition_list
     elif (mode == "test"):
         data_loader_partition_list = test_suffix_loader_partition_list
-        # data_loader_partition_list = train_suffix_loader_partition_list
     elif (mode == 'test-validation'):
         data_loader_partition_list = test_suffix_loader_partition_list + valid_suffix_loader_partition_list
 
@@ -429,8 +411,6 @@ def model_eval_test(modelG, data_obj, mode):
 
     for dl in data_loader_partition_list:
         data_loader = dl
-        # MAX_ITER = dl.dataset[0][1].size()[0]
-        # MAX_ITER = dl.dataset.tensors[1].size()[1]
         for mini_batch in iter(data_loader):
 
             x = mini_batch[0];
@@ -447,7 +427,6 @@ def model_eval_test(modelG, data_obj, mode):
 
             # normal traning
             y_truth_label = torch.argmax(y_truth[:, :, events], dim=2).flatten()
-            # print(y_truth_label.size(), y_pred[:,:,events].squeeze(0).size())
             loss_mle = F.cross_entropy(y_pred[:, :, events].view((-1, y_pred[:, :, events].size(2))),
                                        torch.argmax(y_truth[:, :, events], dim=2).flatten(), weight=weights_final)
             gen_loss_pred_validation.append(loss_mle.tolist())
@@ -480,10 +459,6 @@ def model_eval_test(modelG, data_obj, mode):
 
                 d.append(1.0 - float(damerau.distance(u, v)) / max(len(u), len(v)))
 
-                # if (mode == 'test' or mode == ''):
-                #
-                #     print(t, u, v)
-
             time_mae.append(torch.mean(
                 torch.abs(suffix_real[:, :, duration_time_loc] - suffix_fake[:, :, duration_time_loc])).tolist())
 
@@ -491,13 +466,9 @@ def model_eval_test(modelG, data_obj, mode):
         # #-------------------------------------------------------------------------------
 
     rnnG.train()
-    # rnnD.train()
 
-    # if(mode == 'test'):
-    #   pprint.pprint(mistakes)
 
     print("\n The corss entropy loss validation is:", np.mean(gen_loss_pred_validation))
-    # print("Discriminator loss on validation:", np.mean(disc_loss_temp))
     print("The DLV distance aveg:", np.mean(d))
     print("MAE on validation:", np.mean(time_mae))
 
